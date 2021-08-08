@@ -1,0 +1,132 @@
+service: api-geteway-http-api-sqs-integration
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  profile: flo-examples
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+  logs:
+    httpApi: true
+  httpApi:
+    payload: '2.0'
+
+functions:
+  send:
+    handler: handler.handler
+    events:
+      - sqs:
+          arn: !GetAtt Queue.Arn
+
+resources:
+  Resources:
+    # You don`t have to create these resources if you have a lambda with http-api event as trigger.
+    # In that case serverless framework will create these resources for you.
+    # start: HTTP API base resources
+    HttpApi:
+      Type: AWS::ApiGatewayV2::Api
+      Properties:
+        Name: !Ref AWS::StackName
+        ProtocolType: 'HTTP'
+    HttpApiLogGroup:
+      Type: 'AWS::Logs::LogGroup'
+      Properties:
+        LogGroupName: !Join
+          - ''
+          - - /aws/http-api/
+            - !Ref AWS::StackName
+    HttpApiStage:
+      Type: AWS::ApiGatewayV2::Stage
+      DependsOn:
+        - HttpApi
+        - HttpApiLogGroup
+      Properties:
+        ApiId: !Ref HttpApi
+        StageName: '$default'
+        AutoDeploy: true
+        DefaultRouteSettings:
+          DetailedMetricsEnabled: true
+        AccessLogSettings:
+          DestinationArn: !GetAtt HttpApiLogGroup.Arn
+          Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
+    # end: HTTP API base resources
+
+    Integration:
+      Type: AWS::ApiGatewayV2::Integration
+      DependsOn:
+        - HttpApi
+        - Role
+        - Queue
+      Properties:
+        ApiId: !Ref HttpApi
+        CredentialsArn: !GetAtt Role.Arn
+        IntegrationType: 'AWS_PROXY'
+        IntegrationSubtype: 'SQS-SendMessage'
+        PayloadFormatVersion: '1.0'
+        ResponseParameters:
+          '200':
+            ResponseParameters:
+              - Source: '$context.integration.status'
+                Destination: 'overwrite:statuscode'
+        RequestParameters:
+          QueueUrl: !Ref Queue
+          MessageBody: '$request.body'
+    Route:
+      Type: AWS::ApiGatewayV2::Route
+      DependsOn:
+        - HttpApi
+        - Integration
+      Properties:
+        ApiId: !Ref HttpApi
+        RouteKey: 'POST /send'
+        Target: !Join
+          - '/'
+          - - 'integrations'
+            - !Ref Integration
+    Role:
+      Type: AWS::IAM::Role
+      DependsOn:
+        - HttpApiLogGroup
+        - Queue
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: 'Allow'
+              Principal:
+                Service:
+                  - 'apigateway.amazonaws.com'
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: 'AllowSqsIntegration'
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: 'Allow'
+                  Resource: !GetAtt Queue.Arn
+                  Action:
+                    - 'sqs:SendMessage'
+                    - 'sqs:GetQueueUrl'
+                    - 'sqs:SendMessageBatch'
+                - Effect: 'Allow'
+                  Resource: !GetAtt HttpApiLogGroup.Arn
+                  Action:
+                    - 'logs:CreateLogStream'
+                    - 'logs:DescribeLogGroups'
+                    - 'logs:DescribeLogStreams'
+                    - 'logs:PutLogEvents'
+                    - 'logs:GetLogEvents'
+                    - 'logs:FilterLogEvents'
+    Queue:
+      Type: AWS::SQS::Queue
+  Outputs:
+     SendUrl:
+       Description: 'Send endpoint'
+       Value: !Join
+         - '/'
+         - - !GetAtt HttpApi.ApiEndpoint
+           - 'send'
