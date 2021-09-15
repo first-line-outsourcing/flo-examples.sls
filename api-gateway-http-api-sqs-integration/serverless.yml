@@ -23,7 +23,7 @@ functions:
 
 resources:
   Resources:
-    # You don`t have to create these resources if you have a lambda with http-api event as trigger.
+    # You don`t have to create these resources if you have a lambda with `http-api` event as trigger.
     # In that case serverless framework will create these resources for you.
     # start: HTTP API base resources
     HttpApi:
@@ -112,15 +112,15 @@ resources:
                     - 'sqs:SendMessage'
                     - 'sqs:GetQueueUrl'
                     - 'sqs:SendMessageBatch'
-                - Effect: 'Allow'
-                  Resource: !GetAtt HttpApiLogGroup.Arn
-                  Action:
-                    - 'logs:CreateLogStream'
-                    - 'logs:DescribeLogGroups'
-                    - 'logs:DescribeLogStreams'
-                    - 'logs:PutLogEvents'
-                    - 'logs:GetLogEvents'
-                    - 'logs:FilterLogEvents'
+#                - Effect: 'Allow'
+#                  Resource: !GetAtt HttpApiLogGroup.Arn
+#                  Action:
+#                    - 'logs:CreateLogStream'
+#                    - 'logs:DescribeLogGroups'
+#                    - 'logs:DescribeLogStreams'
+#                    - 'logs:PutLogEvents'
+#                    - 'logs:GetLogEvents'
+#                    - 'logs:FilterLogEvents'
     Queue:
       Type: AWS::SQS::Queue
   Outputs:
@@ -130,3 +130,5 @@ resources:
          - '/'
          - - !GetAtt HttpApi.ApiEndpoint
            - 'send'
+       Export:
+         Name: Send-endpoint-URL
