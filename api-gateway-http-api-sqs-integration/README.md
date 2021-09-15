@@ -111,7 +111,7 @@ resources:
 In the configuration above we defined:
 - An Integration connected to SQS queue
 - A Route connected to the Integration
-- A Role. The Integration uses this role to perform actions on the queue and the logs groups
+- A Role. The Integration uses this role to perform actions on the queue.
 
 There are some resources you don`t know yet. Here is description:
 
