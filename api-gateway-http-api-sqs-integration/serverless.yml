@@ -112,15 +112,6 @@ resources:
                     - 'sqs:SendMessage'
                     - 'sqs:GetQueueUrl'
                     - 'sqs:SendMessageBatch'
-#                - Effect: 'Allow'
-#                  Resource: !GetAtt HttpApiLogGroup.Arn
-#                  Action:
-#                    - 'logs:CreateLogStream'
-#                    - 'logs:DescribeLogGroups'
-#                    - 'logs:DescribeLogStreams'
-#                    - 'logs:PutLogEvents'
-#                    - 'logs:GetLogEvents'
-#                    - 'logs:FilterLogEvents'
     Queue:
       Type: AWS::SQS::Queue
   Outputs:

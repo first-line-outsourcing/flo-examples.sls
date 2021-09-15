@@ -34,7 +34,7 @@ In the red boxes are resources we need to create for our API to configure SQS in
 
 **Integration** - connects a **Route** to backend resources(**SQS**, for example)
 
-**Role** - allows **Integration** to perform actions on **SQS** and CloudWatch logs groups(create, update).
+**Role** - allows **Integration** to perform actions on **SQS**
 
 **API** - Our API
 
