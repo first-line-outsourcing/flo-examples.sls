@@ -1,0 +1,17 @@
+{
+  "name": "get-media-info-service",
+  "version": "1.0.0",
+  "description": "Get media info service example",
+  "license": "ISC",
+  "devDependencies": {
+    "@serverless/typescript": "2.55.0",
+    "@types/aws-lambda": "8.10.83",
+    "@types/node": "14.17.16",
+    "copy-webpack-plugin": "9.0.1",
+    "serverless-webpack": "5.5.4",
+    "ts-loader": "9.2.5",
+    "typescript": "4.4.3",
+    "webpack": "5.53.0",
+    "webpack-node-externals": "3.0.0"
+  }
+}

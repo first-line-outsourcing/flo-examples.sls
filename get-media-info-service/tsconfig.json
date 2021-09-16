@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "preserveConstEnums": true,
+    "strictNullChecks": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "sourceMap": true,
+    "target": "es2017",
+    "outDir": ".build",
+    "moduleResolution": "node",
+    "rootDir": "./",
+    "baseUrl": ".",
+  },
+  "exclude": ["node_modules", "coverage", ".build", ".git"]
+}
