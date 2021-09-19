@@ -28,7 +28,7 @@ Before continue we need to know structure of HTTP API resources. This picture sh
 
 ![Structure of HTTP API](1.png)
 
-In the red boxes are resources we need to create for our API to configure SQS integration. API, Stage, Log Group are additional resources. Keep focus on resources in the red boxes, we will talk about the others resources late.
+In the red boxes are resources we need to create for our API to configure SQS integration. API, Stage, Log Group are additional resources. Keep focus on resources in the red boxes, we will talk about the others resources later.
 
 **Route** - directs incoming API requests to backend resources(**Integration**, for example)
 
@@ -115,8 +115,8 @@ In the configuration above we defined:
 
 There are some resources you don`t know yet. Here is description:
 
- - **HttpApi** - It\`s the API resource. If you have at least one lambda connected to `http-api` event then serverless framework creates this resource for you. If you don`t have one then you have to create it. The required configuration will be provided late.
- - **HttpApiLogGroup** - Here will be access logs. The required configuration will be provided late.
+ - **HttpApi** - It\`s the API resource. If you have at least one lambda connected to `http-api` event then serverless framework creates this resource for you. If you don`t have one then you have to create it. The required configuration will be provided later.
+ - **HttpApiLogGroup** - Here will be access logs. The required configuration will be provided later.
 
 Additional resources you need to create if you don\`t have any lambda with `http-api` event:
 
