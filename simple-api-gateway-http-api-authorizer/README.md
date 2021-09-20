@@ -1,6 +1,6 @@
 # Simple API Gateway HTTP API authorizer
 
-This example shows how to configure an authorizer for an HTTP API route.
+This example shows how to configure an lambda authorizer for an HTTP API route.
 
 Deploy:
 
