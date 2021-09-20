@@ -10,7 +10,7 @@ $ sls deploy -v
 
 How to call the hello endpoint:
 - Provide `Authorization: token` header to pass authorization
-- Provide `Authorization: error` header to throw an error into authorization handler
+- Provide `Authorization: error` header to throw an error inside authorization handler
 - Provide any value other than described above to fail authorization
 
 Example:
