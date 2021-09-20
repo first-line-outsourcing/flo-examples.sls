@@ -1,0 +1,34 @@
+service: simple-api-gateway-http-api-authorizer
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  profile: flo-examples
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+  logs:
+    httpApi: true
+  httpApi:
+    payload: '2.0'
+    authorizers:
+      myAuthorizer:
+        type: request
+        # Simple response format: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html#http-api-lambda-authorizer.example-code
+        enableSimpleResponses: true
+        functionName: myAuthorizerFn
+        identitySource: $request.header.Authorization
+
+functions:
+  hello:
+    handler: handler.handler
+    events:
+      - httpApi:
+          path: /hello
+          method: get
+          authorizer:
+            name: myAuthorizer
+  myAuthorizerFn:
+    handler: authorizer.handler
