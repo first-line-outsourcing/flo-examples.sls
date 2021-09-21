@@ -1,0 +1,25 @@
+service: simple-api-gateway-http-api
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  profile: flo-examples
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+  logs:
+    # Optional configuration which specifies if HTTP API logs are used. This can either be set to `true` (to use defaults as below) or specific log format configuration can be provided
+    httpApi: true
+  httpApi:
+    # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.proxy-format
+    payload: '2.0' # 1.0 or 2.0
+
+functions:
+  hello:
+    handler: handler.handler
+    events:
+      - httpApi:
+          path: /hello
+          method: get
