@@ -1,0 +1,212 @@
+service: example-fargate-vpc-task
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  profile: flo-examples
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ecs:RunTask
+      Resource: !Ref TaskDefinition
+    - Effect: Allow
+      Action:
+        - iam:PassRole
+      Resource: !GetAtt TRole.Arn
+    - Effect: Allow
+      Action:
+        - iam:PassRole
+      Resource: !GetAtt TExecutionRole.Arn
+
+functions:
+  createJob:
+    handler: handler.createJob
+    environment:
+      Cluster: !GetAtt Cluster.Arn
+      Task: !Ref TaskDefinition
+      Subnet: !Ref PrivateSubnet
+      SG: !Ref SecurityGroup
+    events:
+      - httpApi:
+          path: /create-job
+          method: post
+
+resources:
+  Outputs:
+    ServerRepositoryURI:
+      Description: Server repository URI
+      Value: !GetAtt ServerRepository.RepositoryUri
+
+  Resources:
+    ServerRepository:
+      Type: AWS::ECR::Repository
+      Properties:
+        RepositoryName: '${self:service}-repo'
+    VPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+        CidrBlock: 10.0.0.0/16
+
+    PublicSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone:
+          Fn::Select:
+            - 0
+            - Fn::GetAZs: { Ref: 'AWS::Region' }
+        VpcId: !Ref 'VPC'
+        CidrBlock: 10.0.1.0/24
+        MapPublicIpOnLaunch: true
+
+    PrivateSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone:
+          Fn::Select:
+            - 0
+            - Fn::GetAZs: { Ref: 'AWS::Region' }
+        VpcId: !Ref 'VPC'
+        CidrBlock: 10.0.2.0/24
+
+    InternetGateway:
+      Type: AWS::EC2::InternetGateway
+    GatewayAttachement:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        VpcId: !Ref 'VPC'
+        InternetGatewayId: !Ref 'InternetGateway'
+    PublicRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref 'VPC'
+    PublicRoute:
+      Type: AWS::EC2::Route
+      DependsOn: GatewayAttachement
+      Properties:
+        RouteTableId: !Ref 'PublicRouteTable'
+        DestinationCidrBlock: '0.0.0.0/0'
+        GatewayId: !Ref 'InternetGateway'
+    PublicRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet
+        RouteTableId: !Ref PublicRouteTable
+
+    NatGatewayAttachment:
+      Type: AWS::EC2::EIP
+      DependsOn: GatewayAttachement
+      Properties:
+        Domain: vpc
+    NatGateway:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId: !GetAtt NatGatewayAttachment.AllocationId
+        SubnetId: !Ref PublicSubnet
+        ConnectivityType: public
+    PrivateRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref 'VPC'
+    PrivateRoute:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref PrivateRouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGateway
+    PrivateRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref PrivateRouteTable
+        SubnetId: !Ref PrivateSubnet
+
+    TExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: [ ecs-tasks.amazonaws.com ]
+              Action: [ 'sts:AssumeRole' ]
+        Path: /
+        Policies:
+          - PolicyName: AmazonECSTaskExecutionRolePolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    # Allow the ECS Tasks to download images from ECR
+                    - 'ecr:GetAuthorizationToken'
+                    - 'ecr:BatchCheckLayerAvailability'
+                    - 'ecr:GetDownloadUrlForLayer'
+                    - 'ecr:BatchGetImage'
+
+                    # Allow the ECS tasks to upload logs to CloudWatch
+                    - 'logs:CreateLogStream'
+                    - 'logs:PutLogEvents'
+                  Resource: '*'
+
+    TRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - ecs-tasks.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Path: /
+#        Policies:
+#          - PolicyName: ecs-service
+#            PolicyDocument:
+#              Statement:
+#                - Effect: Allow
+#                  Action:
+#                    - *
+#                  Resource: '*'
+
+    LogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        RetentionInDays: 7
+
+    SecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        VpcId: !Ref VPC
+        GroupDescription: A default SG
+
+    Cluster:
+      Type: AWS::ECS::Cluster
+
+    TaskDefinition:
+      Type: AWS::ECS::TaskDefinition
+      Properties:
+        Family: 'test-0'
+        Cpu: 256
+        Memory: 512
+        NetworkMode: awsvpc
+        RequiresCompatibilities:
+          - FARGATE
+        ExecutionRoleArn: !GetAtt TExecutionRole.Arn
+        TaskRoleArn: !GetAtt TRole.Arn
+        ContainerDefinitions:
+          - Name: container
+            Cpu: 256
+            Memory: 512
+            Image: !GetAtt ServerRepository.RepositoryUri
+            LogConfiguration:
+              LogDriver: awslogs
+              Options:
+                awslogs-group: !Ref LogGroup
+                awslogs-stream-prefix: test-0-container
+                awslogs-region: !Ref AWS::Region
